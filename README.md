@@ -49,3 +49,8 @@
    * 通过ThreadLocal变量的set()、get()方法可以获取和修改当前线程的ThreadLocal中的值。
 ***
 
+### RxJava
+1. 订阅原理
+2. 线程切换原理
+2. Disposable原理
+3. Scheduler原理
