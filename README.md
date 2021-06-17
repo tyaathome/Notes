@@ -2,15 +2,7 @@
 
 ## 多线程
 
-### Java部分
-
-***
-
-### Android部分
-
-***
-
-#### Handler
+### Android的Handler
 
 1. Handler
 
