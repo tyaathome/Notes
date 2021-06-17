@@ -4,11 +4,11 @@
 
 ### Java部分
 
-*** ***
+***
 
 ### Android部分
 
-*** ***
+***
 
 #### Handler
 
@@ -33,7 +33,7 @@
 
 4. HandlerThread
 
-   * HandlerThread是一个带Looper的线程；  
+   * HandlerThread是创建一个带Looper的线程，Looper所属HandlerThread的线程；  
 
    * 使用方法  
 
@@ -55,5 +55,5 @@
 
    * ThreadLocal是给当前线程提供局部变量，每个线程包含一个ThreadLocalMap，ThreadLocal则保存在ThreadLocalMap的Entry[]数组中；  
    * 通过ThreadLocal变量的set()、get()方法可以获取和修改当前线程的ThreadLocal中的值。
-*** ***
+***
 
