@@ -61,8 +61,18 @@
              .map((Function<Integer, String>) integer -> String.valueOf(integer))
              .subscribe(new Observer<String>() {});
      ```
+     
    * 流程图
 
+     ![流程图](https://github.com/tyaathome/Notes/blob/main/images/rxjava%E6%B5%81%E7%A8%8B%E5%9B%BE.png?raw=true)
+     
+   * 具体流程
+
+     ① 通过链式调用将被观察者(observable)进行包装(ObservableJust->ObservableSubscribeOn->ObservableObserveOn->ObservableMap)，每一步的observable中都包含上一步的source;
+
+     ② 从下至上递归调用observable.subscribe(observer)方法，将观察者(observer)进行包装(Observer<String>->MapObserver->ObserveOnObserver->SubscribeOnObserver)，每一步的subscribe中都保存上一步的downstream对象;
+
+     ③ 再至上至下递归调用observer.onNext(t)、observer.onComplete()等方法(SubscribeOnObserver->ObserveOnObserver->MapObserver->Observer)结束任务。
 
 2. 线程切换原理
 
