@@ -51,6 +51,21 @@
 
 ### RxJava
 1. 订阅原理
+
+   * 示例代码
+
+     ```java
+     Observable.just(1)
+             .subscribeOn(Schedulers.io())
+             .observeOn(AndroidSchedulers.mainThread())
+             .map((Function<Integer, String>) integer -> String.valueOf(integer))
+             .subscribe(new Observer<String>() {});
+     ```
+   * 流程图
+
+
 2. 线程切换原理
-2. Disposable原理
-3. Scheduler原理
+
+3. Disposable原理
+
+4. Scheduler原理
