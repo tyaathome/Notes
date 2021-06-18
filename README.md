@@ -47,7 +47,6 @@
 
    * ThreadLocal是给当前线程提供局部变量，每个线程包含一个ThreadLocalMap，ThreadLocal则保存在ThreadLocalMap的Entry[]数组中；  
    * 通过ThreadLocal变量的set()、get()方法可以获取和修改当前线程的ThreadLocal中的值。
-***
 
 ### RxJava
 1. 订阅原理
@@ -75,6 +74,51 @@
      ③ 再至上至下递归调用observer.onNext(t)、observer.onComplete()等方法(SubscribeOnObserver->ObserveOnObserver->MapObserver->Observer)结束任务。
 
 2. 线程切换原理
+
+   * subscribeOn()是在subscribe()中将task切换至scheduler线程中运行，而通过流程图可知subscribe()方法是在第②步进行的，流程是由下至上，所以subscribeOn()是控制上部的线程；
+
+     ` ObservableSubscribeOn.java`:
+
+     ```java
+     @Override
+     public void subscribeActual(final Observer<? super T> observer) {
+         final SubscribeOnObserver<T> parent = new SubscribeOnObserver<T>(observer); // 包装上一步的observer
+         observer.onSubscribe(parent);
+         parent.setDisposable(scheduler.scheduleDirect(new SubscribeTask(parent))); // 执行subscribe
+     }
+     ```
+
+     `Scheduler.java`:
+
+     ``` java
+     public Disposable scheduleDirect(@NonNull Runnable run, long delay, @NonNull TimeUnit unit) {
+         final Worker w = createWorker(); // 创建worker
+         final Runnable decoratedRun = RxJavaPlugins.onSchedule(run);
+         DisposeTask task = new DisposeTask(decoratedRun, w);
+         w.schedule(task, delay, unit); // 处理run
+         return task;
+     }
+     ```
+
+     从上面的代码可知run中的线程就是subscribeOn中所设置的，而下一步是继续执行上面的流程，所以可知subscribeOn所设置的线程是控制顶部操作的线程。
+
+   * observeOn是在onNext()、onError()、onComplete()等方法中将task切换至scheduler线程中运行，而通过流程图可知observer.onNext()等方法是在第③步进行，流程是由上至下，所以observeOn控制下部的线程。
+
+     `ObservableObserveOn.java`:
+
+     ``` java
+     public void onNext(T t) {
+         if (done) {
+             return;
+         }
+         if (sourceMode != QueueDisposable.ASYNC) {
+             queue.offer(t);
+         }
+         schedule(); // 调用downstream.onNext()
+     }
+     ```
+
+     从上面代码可知schedule()中的线程是observeOn中所设置的，也就是onNext()的线程，所以observeOn设置的是map及以下的流程的线程。
 
 3. Disposable原理
 
