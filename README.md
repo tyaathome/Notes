@@ -95,7 +95,7 @@
          final Worker w = createWorker(); // 创建worker
          final Runnable decoratedRun = RxJavaPlugins.onSchedule(run);
          DisposeTask task = new DisposeTask(decoratedRun, w);
-         w.schedule(task, delay, unit); // 处理run
+         w.schedule(task, delay, unit); // 在schedule所属的线程运行run
          return task;
      }
      ```
@@ -123,3 +123,16 @@
 3. Disposable原理
 
 4. Scheduler原理
+
+     * Scheduler作用是将任务放在指定线程执行，而且还能执行dispose()操作，用来取消订阅；
+     * Schedulers.io()
+       * 用于IO操作的调度器；
+       * 原理是`IoScheduler`自身维护一个包含`ThreadWorker`的 `CachedWorkerPool`线程池，线程池还存在过期检查队列和一个过期检查的线程；
+       * `ThreadWorker`本质上是一个大小为1定长的`ExecutorService`，也就是由Executors.newScheduledThreadPool(1, factory)方法创建的；
+       * 所有由`Schedulers.io()`创建的`ThreadWorker`工作完了之后会被release(threadworker)方法，该方法作用是将threadworker加入到过期检查队列，而且会为ThreadWorker延续过期时间(now() + keepAliveTime)以供线程池继续使用，而不会频繁初始化ThreadWorker，线程池初始化时会运行一个单一线程用来检查缓存队列里的ThreadWorker已经过期；
+     * Schedulers.newThread()
+       * 该调度器每次使用都会创建一个新线程
+       * 原理是`NewthreadScheduler`每次使用都会生成一个大小为1定长的`ExecutorService`，也就是由Executors.newScheduledThreadPool(1, factory)方法创建的。
+     * AndroidSchedulers.mainThread()
+       * 用于在主线程操作的调度器；
+       * `HandlerScheduler`内部包含一个`Handler`对象，而任务在`Handler`中进行，所以AndroidSchedulers.mainThread()创建的调度器是包含一个主线程`Looper`的`Handler`，所以所有的任务会在主线程中进行。
