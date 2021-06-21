@@ -71,7 +71,7 @@
 
      ② 从下至上递归调用observable.subscribe(observer)方法，将观察者(observer)进行包装(Observer<String>->MapObserver->ObserveOnObserver->SubscribeOnObserver)，每一步的subscribe中都保存上一步的downstream对象;
 
-     ③ 再至上至下递归调用observer.onNext(t)、observer.onComplete()等方法(SubscribeOnObserver->ObserveOnObserver->MapObserver->Observer)结束任务。
+     ③ 再至上至下递归调用下游的observer.onNext(t)、observer.onComplete()等方法(SubscribeOnObserver->ObserveOnObserver->MapObserver->Observer)结束任务。
 
 2. 线程切换原理
 
@@ -121,6 +121,11 @@
      从上面代码可知schedule()中的线程是observeOn中所设置的，也就是onNext()的线程，所以observeOn设置的是map及以下的流程的线程。
 
 3. Disposable原理
+
+     * disposable的作用是可以主动解除上下游的订阅关系；
+     * 所有的observer都实现了Disposable接口，observer都会持有上下游的对象，`onSubscribe()`得到的Disposable对象其实就是observer本身；
+     * 订阅的时候上游对象会向下游递归调用`onSubscribe()`方法，最后得到disposable对象；
+     * 解除订阅的时候是调用disposable.dispose()方法，而会从下至上递归调用上游的`dispose()`方法来解除订阅。
 
 4. Scheduler原理
 
