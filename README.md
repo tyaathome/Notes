@@ -136,3 +136,46 @@
      * AndroidSchedulers.mainThread()
        * 用于在主线程操作的调度器；
        * `HandlerScheduler`内部包含一个`Handler`对象，而任务在`Handler`中进行，所以AndroidSchedulers.mainThread()创建的调度器是包含一个主线程`Looper`的`Handler`，所以所有的任务会在主线程中进行。
+
+### Retrofit
+
+1. 动态代理
+   * 静态代理是在编译时期已经被编译成class文件，然后加入到jvm里，最后调用实际的类方法；
+   * 动态代理则是在运行时生成的，在运行时动态生成类字节码，然后通过classloader将该类加载到jvm里，最后实现接口对象，而调用具体方法则是被代理成InvocationHandler类的invoke()方法达到调用目的。
+
+2. 源码解析
+
+   * 使用动态代理实现Service类的实现
+
+     ```java
+       public <T> T create(final Class<T> service) {
+         ...
+         return (T)
+             Proxy.newProxyInstance(
+                 service.getClassLoader(),
+                 new Class<?>[] {service},
+                 new InvocationHandler() {
+                   private final Platform platform = Platform.get();
+                   private final Object[] emptyArgs = new Object[0];
+     
+                   @Override
+                   public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)
+                       throws Throwable {
+                     ...
+                     return platform.isDefaultMethod(method)
+                         ? platform.invokeDefaultMethod(method, service, proxy, args)
+                         : loadServiceMethod(method).invoke(args);
+                   }
+                 });
+       }
+     ```
+     
+   * loadServiceMethod实现
+
+     * 通过RequestFactory.parseAnnotations(retrofit, method)解析Service类中具体方法的配置；
+     * 通过HttpServiceMethod.parseAnnotations(retrofit, method, requestFactory)解析在retrofit配置的callAdapter和responseConverter等参数。
+     
+   * loadServiceMethod.invoke(args)实现
+   
+     * 通过使用在上一步创建好的requestFactory、args、 callFactory、responseConverter等参数创建出Call<T>对象；
+     * 然后通过调用`callAdapter.adapt(call)`来完成从Service接口方法的调用适配为网络请求(Call)调用，从而完成整个网络请求。
