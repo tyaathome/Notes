@@ -142,7 +142,65 @@
        * 原理是`NewthreadScheduler`每次使用都会生成一个大小为1定长的`ExecutorService`，也就是由Executors.newScheduledThreadPool(1, factory)方法创建的。
      * AndroidSchedulers.mainThread()
        * 用于在主线程操作的调度器；
+       
        * `HandlerScheduler`内部包含一个`Handler`对象，而任务在`Handler`中进行，所以AndroidSchedulers.mainThread()创建的调度器是包含一个主线程`Looper`的`Handler`，所以所有的任务会在主线程中进行。
+       
+### OkHttp
+
+1. 源码解析
+
+   * API使用方法
+
+     ```java
+     OkHttpClient client = new OkHttpClient();
+     client.newCall(new Request.Builder()
+             .url("url")
+             .build()).enqueue(new Callback() {
+         @Override
+         public void onFailure(Call call, IOException e) {
+         }
+         @Override
+         public void onResponse(Call call, Response response) throws IOException {
+         }
+     });
+     ```
+
+   * 源码调用流程
+     1. `Call.enqueue(Callback)`
+     2. `client.dispatcher().enqueue(new AsyncCall(responseCallback))`
+     3. `promoteAndExecute()`
+     4. `asyncCall.executeOn(executorService())`
+     5. `executorService.execute(this)`
+     6. `getResponseWithInterceptorChain()`
+     7. 取得到response之后通过callback回调数据
+   
+2. getResponseWithInterceptorChain()方法解析
+
+   * InterceptorChain流程图
+
+     ![InterceptorChain流程图](https://github.com/tyaathome/Notes/blob/main/images/InterceptorChain%E6%B5%81%E7%A8%8B%E5%9B%BE.png?raw=true)
+
+   * 具体流程
+   
+     ① 从第一个InterceptorChain中取出拦截器(Interceptor)，然后通过调用`interceptor.intercept(nextChain)`来执行自己的intercept()方法，如果在intercept()方法中调用了chain.proceed(request)方法，则会递归调用下一个拦截器的intercept()方法，这样看起来像是一个拦截器的链。
+   
+     ② 如果一直递归调用到最后一个拦截器，而且最后一个interceptor没有调用`chain.proceed(request)`方法，并返回了response结果，则上一个拦截器会递归完成`intercept()`方法中`chain.proceed(request)`的后续代码并继续返回reponse结果，最后返回最终的respnse结果。
+   
+     ③ 如果某个拦截器有下一个拦截器，但是该拦截器没有在`intercept()`方法中调用`chain.proceed(request)`，则会直接返回response结果，并往上递归完成`intercept()`方法，如图虚线的方式。
+   
+     <font color="RED">注：我们以拦截器的intercept()方法中的代码开始至chain.proceed(request)之前的代码标记为图中①步骤，可以理解为拦截器在获取response的**前置工作**；</font>
+   
+     <font color="RED">以拦截器的intercept()方法中的代码chain.proceed(request)之后的代码到最后返回的代码标记为图中的②步骤，可以理解我拦截器在获取response的**后置工作**</font>
+   
+   * 相关Interceptor解释
+   
+     * client.interceptors()拦截器是用户自己添加的拦截器
+     * RetryAndFollowUpInterceptor拦截器是用来处理像验证失败、重定向、超时等等情况的重新请求。
+     * BridgeInterceptor拦截器是用来写入请求头(request-header)、cookies和响应数据的gzip解码等等的工作。
+     * CacheInterceptor拦截器是用来获取请求的缓存数据，如果存在缓存数据则直接返回response，不会继续往下调用下一个拦截器。
+     * ConnectInterceptor拦截器用来在请求前建立tcp/tls连接。
+     * client.networkInterceptors()拦截器是也是用户自己添加的拦截器，与interceptors不同的是这个拦截器是在tcp连接建立完成之后才会使用的拦截器，比如如果一个请求存在缓存，则并不会调用networkInterceptors中的拦截器。
+     * CallServerInterceptor拦截器是用来将用户创建的request发送给服务器，并得到response，因为这个拦截器是最后一个拦截器，所以会直接返回response。
 
 ### Retrofit
 
@@ -186,3 +244,4 @@
    
      * 通过使用在上一步创建好的requestFactory、args、 callFactory、responseConverter等参数创建出Call<T>对象；
      * 然后通过调用`callAdapter.adapt(call)`来完成从Service接口方法的调用适配为网络请求(Call)调用，从而完成整个网络请求。
+     * retrofit网络请求底层是通过OkHttp来处理的。
