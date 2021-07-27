@@ -245,3 +245,25 @@
      * 通过使用在上一步创建好的requestFactory、args、 callFactory、responseConverter等参数创建出Call<T>对象；
      * 然后通过调用`callAdapter.adapt(call)`来完成从Service接口方法的调用适配为网络请求(Call)调用，从而完成整个网络请求。
      * retrofit网络请求底层是通过OkHttp来处理的。
+
+# Android部分
+
+## View
+
+### Touch
+
+1. 触摸流程
+
+   * Activity.dispatchTouchEvent() -> 
+
+     ViewGroup(View).dispatchTouchEvent() -> 
+
+     ViewGroup.onInterceptTouchEvent() -> 
+
+     child.dispatchTouchEvent() ->
+
+     super.dispatchTouchEvent() ->
+
+     View.onTouchEvent()
+
+   * ViewGroup中有多个children，则根据层级优先从上至下处理child.dispatchTouchEvent()，当没有设置过Z轴层级的话，按children的个数从后向前遍历，当有设置过Z轴层级的话，则按从高至低层级遍历(详细逻辑参考[ViewGroup.java](http://androidxref.com/9.0.0_r3/xref/frameworks/base/core/java/android/view/ViewGroup.java)的dispatchTouchEvent()方法和buildTouchDispatchChildList()方法)
