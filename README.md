@@ -245,6 +245,71 @@
      * 通过使用在上一步创建好的requestFactory、args、 callFactory、responseConverter等参数创建出Call<T>对象；
      * 然后通过调用`callAdapter.adapt(call)`来完成从Service接口方法的调用适配为网络请求(Call)调用，从而完成整个网络请求。
      * retrofit网络请求底层是通过OkHttp来处理的。
+### 单例线程安全
+
+1. 饿汉式线程安全：
+
+   ```Java
+   public class SingleTon {
+       private SingleTon() {
+       }
+       private static class SingleTonBuilder {
+           private static final SingleTon INSTANCE = new SingleTon();
+       }
+       public static SingleTon getInstance() {
+           return SingleTonBuilder.INSTANCE;
+       }
+   
+   }
+   ```
+
+   通过classloader加载SingleTon类的时候就会初始化内部类SingleTonBuilder的INSTANCE对象，而且此时只有一个线程，所以可以保证线程安全。
+
+2. 懒汉式线程安全：
+
+   ```Java
+   public class SingleTon {
+       private static volatile SingleTon INSTANCE = null;
+       private SingleTon() {
+       }
+       
+       public static SingleTon getInstance() {
+           if(INSTANCE == null) {
+               synchronized (SingleTon.class) {
+                   if(INSTANCE == null) {
+                       INSTANCE = new SingleTon();
+                   }
+               }
+           }
+           return INSTANCE;
+       }
+   }
+   ```
+
+   volatile关键字修饰的字段具有可见性和禁止重排：
+
+   1. 可见性：保证此变量对所有线程的可见性，当一个线程修改了变量值其他线程也可以获得此新值；
+   2. 禁止重排：CPU的指令可以允许多条指令重排，而volatile会禁止该特性。
+
+   双重锁定检测：使用volatile关键字来确保其在其他线程的可见性，使用synchronized代码块确保其不被重复实例化。
+
+## JVM
+
+### GC
+
+1. 堆栈
+   * 栈：存放基本类型和对象引用(比如对象指针)
+   * 堆：存放被创建出来的实例对象
+
+2. 引用
+     * 强引用：GC永远不会回收强引用对象
+     * 软引用：在内存溢出前才会回收软引用对象
+     * 弱引用：在GC的时候回收弱引用对象
+     * 虚引用：虚引用的目的是对象被回收的时候获得通知
+3. GC Roots:
+     * 活动线程的相关引用
+     * 类的静态变量的引用
+     * JNI引用
 
 # Android部分
 
@@ -267,3 +332,13 @@
      View.onTouchEvent()
 
    * ViewGroup中有多个children，则根据层级优先从上至下处理child.dispatchTouchEvent()，当没有设置过Z轴层级的话，按children的个数从后向前遍历，当有设置过Z轴层级的话，则按从高至低层级遍历(详细逻辑参考[ViewGroup.java](http://androidxref.com/9.0.0_r3/xref/frameworks/base/core/java/android/view/ViewGroup.java)的dispatchTouchEvent()方法和buildTouchDispatchChildList()方法)
+
+## Activity
+
+### App启动流程
+
+1. 用户通过launcher点击要打开的App
+2. launcher进程向AMS请求启动根Activity
+3. AMS向Zygote请求fork进程
+4. Zygote fork创建新的App进程并启动进程
+5. AMS启动根Activity
