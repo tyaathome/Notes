@@ -176,6 +176,12 @@
    
 2. getResponseWithInterceptorChain()方法解析
 
+   * 责任链模式
+
+     > 使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止。
+     >
+     > 责任链模式（Chain of Responsibility）是一种处理请求的模式，它让多个处理器都有机会处理该请求，直到其中某个处理成功为止。责任链模式把多个处理器串成链，然后让请求在链上传递
+
    * InterceptorChain流程图
 
      ![InterceptorChain流程图](https://github.com/tyaathome/Notes/blob/main/images/InterceptorChain%E6%B5%81%E7%A8%8B%E5%9B%BE.png?raw=true)
